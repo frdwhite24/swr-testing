@@ -4,9 +4,11 @@ import { render } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import FetchDataFetch from "./FetchDataFetch";
 import FetchDataSWR from "./FetchDataSWR";
-import { WHO_AM_I } from "../graphql/queries";
+import FetchDataApollo from "./FetchDataApollo";
+import { WHO_AM_I, WHO_AM_I_GQL } from "../graphql/queries";
 import { runtimeReqHandlers } from "../testUtils";
-import { fetchData } from "../graphql/utilities";
+import { fetchData, client } from "../graphql/utilities";
+import { ApolloProvider } from "@apollo/client";
 
 // These three tests test a react component which fetches data from within the
 // component using a basic fetch command and awaiting the response.
@@ -154,6 +156,47 @@ describe("SWR Component", () => {
       <SWRConfig value={{ dedupingInterval: 0 }}>
         <FetchDataSWR query={WHO_AM_I} />
       </SWRConfig>
+    );
+    expect(await findByText("Fred White")).toBeInTheDocument();
+  });
+});
+
+// Testing out if Apollo Client has the same issues with test isolation to
+// support the argument of switching graphql client to apollo.
+describe("Apollo Client Provider", () => {
+  test("before custom req handler", async () => {
+    const { findByText } = render(
+      <ApolloProvider client={client}>
+        <FetchDataApollo query={WHO_AM_I_GQL} />
+      </ApolloProvider>
+    );
+    expect(await findByText("Fred White")).toBeInTheDocument();
+  });
+
+  test("with custom req handler", async () => {
+    runtimeReqHandlers({
+      query: "whoAmI",
+      response: {
+        whoAmI: {
+          id: "1",
+          firstName: "Barack",
+          lastName: "Obama",
+        },
+      },
+    });
+    const { findByText } = render(
+      <ApolloProvider client={client}>
+        <FetchDataApollo query={WHO_AM_I_GQL} />
+      </ApolloProvider>
+    );
+    expect(await findByText("Barack Obama")).toBeInTheDocument();
+  });
+
+  test("after custom req handler", async () => {
+    const { findByText } = render(
+      <ApolloProvider client={client}>
+        <FetchDataApollo query={WHO_AM_I_GQL} />
+      </ApolloProvider>
     );
     expect(await findByText("Fred White")).toBeInTheDocument();
   });

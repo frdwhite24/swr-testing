@@ -1,5 +1,6 @@
 import { server } from "./mocks/server.js";
 import { cache } from "swr";
+import { client } from "./graphql/utilities";
 
 beforeAll(() => {
   // This explicitly tells me if any requests get through the mocking unhandled.
@@ -16,6 +17,9 @@ beforeAll(() => {
 afterEach(() => {
   // SWR caching is cleared as stated in https://github.com/vercel/swr/pull/231
   cache.clear();
+
+  // Clear out the apollo cache
+  client.clearStore();
 
   // MSW server runtime request handlers are reset as recommended in
   // https://mswjs.io/docs/getting-started/integrate/node#using-create-react-app
